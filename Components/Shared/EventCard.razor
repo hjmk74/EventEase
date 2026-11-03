@@ -1,0 +1,45 @@
+<article class="event-card">
+    <div class="event-card-top">
+        <span class="category-pill">@EventItem.Category</span>
+        <span class="event-date">@EventItem.Date.ToString("MMM dd")</span>
+    </div>
+
+    <h2>@EventItem.Title</h2>
+    <p class="muted">@EventItem.Description</p>
+
+    <div class="event-meta">
+        <span>Location: @EventItem.Location</span>
+        <span>Time: @EventItem.Date.ToString("h:mm tt")</span>
+    </div>
+
+    <div class="capacity-row">
+        <span>@EventItem.RegisteredCount / @EventItem.Capacity registered</span>
+        <span>@(EventItem.Capacity - EventItem.RegisteredCount) spots left</span>
+    </div>
+
+    <div class="progress-track">
+        <div class="progress-fill" style="width:@ProgressPercent%"></div>
+    </div>
+
+    <a class="button button-outline full-width" href="/register/@EventItem.Id">
+        Register
+    </a>
+</article>
+
+@code {
+    [Parameter]
+    public Event EventItem { get; set; } = new Event();
+
+    private int ProgressPercent
+    {
+        get
+        {
+            if (EventItem.Capacity == 0)
+            {
+                return 0;
+            }
+
+            return EventItem.RegisteredCount * 100 / EventItem.Capacity;
+        }
+    }
+}

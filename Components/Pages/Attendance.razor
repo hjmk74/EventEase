@@ -1,0 +1,201 @@
+@page "/attendance"
+@inject EventService Events
+@inject AttendanceService Attendance
+
+<PageTitle>Attendance - EventEase</PageTitle>
+
+<div class="page-intro">
+    <p class="eyebrow">ATTENDANCE</p>
+    <h1>Attendance tracker</h1>
+    <p class="muted">Select an event to see the registered attendees.</p>
+</div>
+
+<div class="toolbar panel">
+    <div class="field compact-field">
+        <label for="event-filter">Event</label>
+        <InputSelect id="event-filter" class="input" @bind-Value="selectedEventId">
+            <option value="0">Choose an event</option>
+            @foreach (Event ev in Events.GetAll())
+            {
+                <option value="@ev.Id">@ev.Title</option>
+            }
+        </InputSelect>
+    </div>
+
+    <div class="search-box">
+        <label for="search">Search</label>
+        <input id="search" class="input" @bind="searchTerm" @bind:event="oninput" placeholder="Name or email" />
+    </div>
+</div>
+
+@if (selectedEventId == 0)
+{
+    <div class="empty-state panel">
+        <h2>Select an event</h2>
+        <p class="muted">The registered people will appear here.</p>
+    </div>
+}
+else
+{
+    <div class="stats-grid">
+        <div class="stat-card">
+            <span>Registered</span>
+            <strong>@records.Count</strong>
+        </div>
+        <div class="stat-card">
+            <span>Present</span>
+            <strong>@records.Count(r => r.IsPresent)</strong>
+        </div>
+        <div class="stat-card">
+            <span>Not arrived</span>
+            <strong>@records.Count(r => !r.IsPresent)</strong>
+        </div>
+        <div class="stat-card">
+            <span>Rate</span>
+            <strong>@AttendanceRate%</strong>
+        </div>
+    </div>
+
+    <section class="panel table-panel">
+        <div class="table-heading">
+            <div>
+                <h2>Guest list</h2>
+                <p class="muted">@filteredRecords.Count() people</p>
+            </div>
+        </div>
+
+        @if (records.Count == 0)
+        {
+            <div class="empty-inline">No one has registered yet.</div>
+        }
+        else
+        {
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Registered</th>
+                            <th>Status</th>
+                            <th>Check in</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (AttendanceRow record in filteredRecords)
+                        {
+                            <tr>
+                                <td class="name-cell">@record.AttendeeName</td>
+                                <td>@record.Email</td>
+                                <td>@record.RegisteredAt.ToString("MMM dd, yyyy")</td>
+                                <td>
+                                    @if (record.IsPresent)
+                                    {
+                                        <span class="status-pill status-present">Present</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-pill status-pending">Not arrived</span>
+                                    }
+                                </td>
+                                <td>
+                                    <input type="checkbox"
+                                           checked="@record.IsPresent"
+                                           @onchange="e => ToggleAttendance(record.RegistrationId, e)" />
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+}
+
+@code {
+    private int selectedEventId = 0;
+    private int loadedEventId = 0;
+    private string searchTerm = "";
+    private List<AttendanceRow> records = new List<AttendanceRow>();
+
+    private IEnumerable<AttendanceRow> filteredRecords
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(searchTerm))
+            {
+                return records;
+            }
+
+            return records.Where(r =>
+                r.AttendeeName.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                r.Email.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+    private int AttendanceRate
+    {
+        get
+        {
+            if (records.Count == 0)
+            {
+                return 0;
+            }
+
+            return records.Count(r => r.IsPresent) * 100 / records.Count;
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        LoadRecords();
+    }
+
+    private void LoadRecords()
+    {
+        if (selectedEventId == 0)
+        {
+            records = new List<AttendanceRow>();
+            loadedEventId = 0;
+            return;
+        }
+
+        if (selectedEventId == loadedEventId)
+        {
+            return;
+        }
+
+        loadedEventId = selectedEventId;
+        records = Attendance.GetForEvent(selectedEventId)
+            .Select(r => new AttendanceRow
+            {
+                RegistrationId = r.RegistrationId,
+                AttendeeName = r.AttendeeName,
+                Email = r.Email,
+                RegisteredAt = r.RegisteredAt,
+                IsPresent = r.IsPresent
+            })
+            .ToList();
+    }
+
+    private void ToggleAttendance(int registrationId, ChangeEventArgs e)
+    {
+        bool isPresent = e.Value != null && Convert.ToBoolean(e.Value);
+        Attendance.SetAttendance(registrationId, isPresent);
+
+        AttendanceRow? row = records.FirstOrDefault(r => r.RegistrationId == registrationId);
+        if (row != null)
+        {
+            row.IsPresent = isPresent;
+        }
+    }
+
+    private class AttendanceRow
+    {
+        public int RegistrationId { get; set; }
+        public string AttendeeName { get; set; } = "";
+        public string Email { get; set; } = "";
+        public DateTime RegisteredAt { get; set; }
+        public bool IsPresent { get; set; }
+    }
+}

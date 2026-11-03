@@ -1,0 +1,48 @@
+@page "/"
+@inject EventService Events
+
+<PageTitle>Events - EventEase</PageTitle>
+
+<section class="hero">
+    <div>
+        <p class="eyebrow">EVENTEASE</p>
+        <h1>Manage your events in one place</h1>
+        <p class="hero-text">
+            View upcoming events, register attendees and check attendance.
+        </p>
+        <a class="button" href="/register">Register for an event</a>
+    </div>
+
+    <div class="hero-box">
+        <div class="ticket">
+            <strong>You're invited</strong>
+            <p>Join us at the next event.</p>
+            <span>EVENTEASE</span>
+        </div>
+    </div>
+</section>
+
+<div class="section-heading">
+    <div>
+        <p class="eyebrow">EVENTS</p>
+        <h2>Upcoming events</h2>
+        <p class="muted">Choose an event and register.</p>
+    </div>
+
+    <span class="count-badge">@Events.GetAll().Count events</span>
+</div>
+
+<div class="event-grid">
+    @foreach (Event item in Events.GetAll())
+    {
+        <EventCard EventItem="item" />
+    }
+</div>
+
+<section class="bottom-cta">
+    <div>
+        <h2>Already registered?</h2>
+        <p>Check who has arrived at an event.</p>
+    </div>
+    <a class="button button-light" href="/attendance">Attendance</a>
+</section>

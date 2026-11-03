@@ -1,0 +1,21 @@
+@inherits LayoutComponentBase
+
+<div class="app-shell">
+    <header class="topbar">
+        <a class="brand" href="/">EventEase</a>
+
+        <nav>
+            <NavLink href="/" Match="NavLinkMatch.All">Events</NavLink>
+            <NavLink href="/register">Register</NavLink>
+            <NavLink href="/attendance">Attendance</NavLink>
+        </nav>
+    </header>
+
+    <main class="main-content">
+        @Body
+    </main>
+
+    <footer class="footer">
+        EventEase - Simple event management app
+    </footer>
+</div>

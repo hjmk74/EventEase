@@ -1,0 +1,116 @@
+@page "/register"
+@page "/register/{EventId:int}"
+@inject EventService Events
+@inject SessionService Session
+
+<PageTitle>Registration - EventEase</PageTitle>
+
+<div class="page-intro">
+    <p class="eyebrow">REGISTER</p>
+    <h1>Event registration</h1>
+    <p class="muted">Enter your details to register.</p>
+</div>
+
+<div class="form-layout">
+    <section class="panel form-panel">
+        @if (registered)
+        {
+            <div class="success-state">
+                <div class="success-icon">✓</div>
+                <h2>Registration complete</h2>
+                <p>@feedback</p>
+                <a class="button" href="/attendance">Go to attendance</a>
+                <button class="text-button" @onclick="ResetForm">Register someone else</button>
+            </div>
+        }
+        else
+        {
+            <EditForm Model="model" OnValidSubmit="SubmitRegistration">
+                <DataAnnotationsValidator />
+
+                <div class="field">
+                    <label for="event">Choose an event</label>
+                    <InputSelect id="event" class="input" @bind-Value="model.EventId">
+                        <option value="0">Select an event</option>
+                        @foreach (Event ev in Events.GetAll())
+                        {
+                            <option value="@ev.Id">@ev.Title - @ev.Date.ToString("MMM dd")</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="() => model.EventId" />
+                </div>
+
+                <div class="field">
+                    <label for="name">Full name</label>
+                    <InputText id="name" class="input" @bind-Value="model.FullName" />
+                    <ValidationMessage For="() => model.FullName" />
+                </div>
+
+                <div class="field">
+                    <label for="email">Email</label>
+                    <InputText id="email" type="email" class="input" @bind-Value="model.Email" />
+                    <ValidationMessage For="() => model.Email" />
+                </div>
+
+                <div class="field">
+                    <label for="phone">Phone</label>
+                    <InputText id="phone" class="input" @bind-Value="model.Phone" />
+                    <ValidationMessage For="() => model.Phone" />
+                </div>
+
+                @if (!string.IsNullOrWhiteSpace(feedback))
+                {
+                    <div class="alert">@feedback</div>
+                }
+
+                <button class="button full-width" type="submit">Register</button>
+            </EditForm>
+        }
+    </section>
+
+    <aside class="form-aside">
+        <h3>Before you register</h3>
+        <p>Make sure your email is correct. You cannot register the same email twice for one event.</p>
+    </aside>
+</div>
+
+@code {
+    [Parameter]
+    public int? EventId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "eventId")]
+    public int? EventIdQuery { get; set; }
+
+    private Registration model = new Registration();
+    private string feedback = "";
+    private bool registered = false;
+
+    protected override void OnParametersSet()
+    {
+        int? selectedId = EventId ?? EventIdQuery;
+
+        if (selectedId.HasValue && Events.GetById(selectedId.Value) != null)
+        {
+            model.EventId = selectedId.Value;
+        }
+    }
+
+    private void SubmitRegistration()
+    {
+        var result = Events.Register(model);
+        feedback = result.Message;
+
+        if (result.Success && result.Registration != null)
+        {
+            Session.SignIn(result.Registration.FullName, result.Registration.Email);
+            registered = true;
+        }
+    }
+
+    private void ResetForm()
+    {
+        model = new Registration();
+        feedback = "";
+        registered = false;
+    }
+}
